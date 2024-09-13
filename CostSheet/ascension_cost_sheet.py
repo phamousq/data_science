@@ -3,10 +3,16 @@ import polars as pl
 
 df = pl.read_csv(
     "741109643_dell-seton-medical-center-at-univ-of-texas_standardcharges.csv",
+    "741109643_dell-seton-medical-center-at-univ-of-texas_standardcharges.csv",
     # encoding="latin-1",
     skip_rows=2,
     ignore_errors=True,
 )
+# I don't understand why some values have null and others don't, we are including the following columns which I think are interesting.
+# discounted cash is the price you will be charged if you don't have insurance
+# gross is the number that presents as the charge to the hospital before any discounts
+# negotiated dollar is the dollar amount that the hospital has negotiated with current insurance companies (the payer listed)
+
 # I don't understand why some values have null and others don't, we are including the following columns which I think are interesting.
 # discounted cash is the price you will be charged if you don't have insurance
 # gross is the number that presents as the charge to the hospital before any discounts
@@ -23,9 +29,17 @@ dd = (
             "payer_name",
             "standard_charge|min",
             "standard_charge|max",
+            "standard_charge|min",
+            "standard_charge|max",
         ]
     )
     .unique(subset=["description"])
+    .drop_nulls()  # drops the first occurance of null
+)
+
+dd = dd.with_columns(
+    (dd["standard_charge|max"] - dd["standard_charge|min"])
+    .alias("standard_charge|difference")
     .drop_nulls()  # drops the first occurance of null
 )
 
@@ -34,6 +48,10 @@ dd = dd.with_columns(
         "standard_charge|difference"
     )
 )
+
+dd.sort("standard_charge|discounted_cash")
+# shows the discrepancy in "good" vs "bad" insurance plans
+dd.sort("standard_charge|difference")
 
 dd.sort("standard_charge|discounted_cash")
 # shows the discrepancy in "good" vs "bad" insurance plans
