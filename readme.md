@@ -8,3 +8,11 @@ Tools:
 - numpy
 - seaborn
 - matplotlib
+
+
+# Use
+- clone repo
+- create virtual env and install dependencies
+- python -m venv .venv
+- source .venv/bin/activate
+- pip install -r requirements.txt

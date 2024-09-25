@@ -1,11 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-# ChatGPT solution
-# Constants
-n_1 = 1.33
-n_2 = 1.31
-I0 = 5e-1  # Incident intensity in mW/cm^2
+n_1 = 1.333  # Refractive index of water per google
+n_2 = 1.31  # Refractive index of ice per google
+I0 = 5  # Incident intensity in mW/cm^2
 
 # Angle range from 0 to 90 degrees
 theta_i_rad = np.linspace(0, np.pi / 2, 1000)
@@ -17,28 +15,26 @@ R_p = np.zeros_like(theta_i_rad)
 for i, theta_i in enumerate(theta_i_rad):
     # Calculate the transmission angle using Snell's law
     sin_theta_t = (n_1 / n_2) * np.sin(theta_i)
+    # Total internal reflection scenario (not physically realizable)
     if -1 <= sin_theta_t <= 1:
         theta_t = np.arcsin(sin_theta_t)
 
         # s-polarized reflection coefficient
-        R_s[i] = (
-            (n_1 * np.cos(theta_i) - n_2 * np.cos(theta_t))
-            / (n_1 * np.cos(theta_i) + n_2 * np.cos(theta_t))
-        ) ** 2
+        R_s[i] = (n_1 * np.cos(theta_i) - n_2 * np.cos(theta_t)) / (
+            n_1 * np.cos(theta_i) + n_2 * np.cos(theta_t)
+        )
 
         # p-polarized reflection coefficient
-        R_p[i] = (
-            (n_1 * np.cos(theta_t) - n_2 * np.cos(theta_i))
-            / (n_1 * np.cos(theta_t) + n_2 * np.cos(theta_i))
-        ) ** 2
+        R_p[i] = (n_1 * np.cos(theta_t) - n_2 * np.cos(theta_i)) / (
+            n_1 * np.cos(theta_t) + n_2 * np.cos(theta_i)
+        )
     else:
-        # Total internal reflection scenario (not physically realizable)
         R_s[i] = 1
         R_p[i] = 1
 
 # Calculate reflected intensities
-I_s = I0 * R_s
-I_p = I0 * R_p
+I_s = R_s**2 * I0
+I_p = R_p**2 * I0
 
 # Plotting
 plt.figure()
