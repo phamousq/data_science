@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # Question 3a
-# Importing Data and cleaning
+## Importing Data and cleaning
 headers = []
 data = []
 
@@ -28,18 +28,13 @@ df = pl.DataFrame(
 data = []
 headers = []
 
-# Calculate absorbance from transmission
-# df = df.with_columns((-np.log10(pl.col("transmission"))).alias("absorbance"))
-
-# Inport data from Acradine
+## Calculate absorbance from transmission
+### Inport data from reference Acradine data
 with open("AcradineOrangeExt.txt", "r") as file:
     for line in file:
-        # if "##" in line:
-        #     headers = line[2:].strip().split("	")
         if re.search(r"^[\d]", line):
             data.append(line.strip().split("\t"))
 
-# list [wavelength(nm), extinction coefficient]
 for x in range(len(data)):
     for y in range(len(data[x])):
         data[x][y] = float(data[x][y])
@@ -71,8 +66,8 @@ plt.grid(True)
 plt.show()
 
 # Question 3b
-conc_mean = df.select(pl.mean("Concentration"))
-print("Average Concentration ", conc_mean, " M")
+conc_mean = df.select(pl.mean("Concentration")).item()
+print("Average Concentration", conc_mean, "M")
 # Use the Beer-Lambert law: A = εbc, Rearranging to solve for ε: ε = A / (bc)
 # A (absorbance) = -log(T), where T is the measured transmission
 # b is the path length (1 cm)
