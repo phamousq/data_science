@@ -1,6 +1,7 @@
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.signal import convolve2d
 
 
 # 2.
@@ -55,7 +56,6 @@ class Image:
 
 
 line1 = Line(420, 100, 570, 100)
-line1 = Line(420, 100, 570, 100)
 line2 = Line(700, 300, 800, 300)
 line3 = Line(320, 800, 420, 800)
 neuron = Image("neuron.png")
@@ -85,25 +85,161 @@ plt.title("Intensity at Given X Coordinates")
 plt.grid(True)
 plt.show()
 
+# dict of pixel: intensity
+# Calculate observed resolution using full width maximum height method
 res = dict(zip(x_vals, intensities))
+swap_res = {v: k for k, v in res.items()}
+pixel_max_intensity = max(res, key=res.get)
+max_intensity = res[pixel_max_intensity]
+print(dict((k, v) for k, v in res.items() if v >= max_intensity))
+# shows 2nd local max at 773
 
-inten_max = max(intensities)
+print(
+    f"max intensities: {max_intensity}, half of max intensities for determining resolution in pixels: {max_intensity/2}"
+)
 
-# return first xval where inten < 0.5*maxintensity
-for key in res:
-    print(f"{key}, {res[key]}")
+inten_obs_res = next(
+    iter(
+        dict(
+            (k, v)
+            for k, v in res.items()
+            if v <= max_intensity / 2 and k >= pixel_max_intensity
+        ).values()
+    )
+)
 
-# We can see a local max of 235 at x value of 773, half of this is about 117.5, the next x value that measures less than half of the maximum intensity occurs at x val 777 with intensity of 92. this means the resolution is 4 pixels.
+resolution_observed = swap_res[inten_obs_res] - swap_res[max_intensity]
 
-# ! left off at this point
+
+print(
+    f"We can see a local max of {max_intensity} at x value of {swap_res[max_intensity]}, half of this is about {max_intensity/2}, the next x value that measures less than half of the maximum intensity occurs at x val {swap_res[inten_obs_res]} with intensity of {inten_obs_res}. this means the resolution is {resolution_observed} pixels."
+)
+
+# solve for Rayleigh criterion which determines the diffraction limited resolution
+# Assumes objective has oil immersion to maximize NA at 1.4 and microscope wavelength of 0.55micrometers
+objective_NA = 1.4
+microscope_wavelength = 0.55  # Green light in micrometers
+
+rayleigh = 0.61 * microscope_wavelength / objective_NA
+print(
+    f"smallest detail that can be resolved by the system is {rayleigh} micrometers and this is the diffraction limit of resolution"
+)
+
+print(
+    f"observed resolution of {resolution_observed} micrometers is worse than diffraction limit {rayleigh} micrometers which is expected as aberrations, pixelation, and user error increase the overall margin of error"
+)
+
 
 # 3a. Generate and display the 2D PSF of each of the objectives at a wavelength of 500 nm. To do this you will need to create a 2D grid of values with spacings appropriate for the objective. The PSF can be displayed as an intensity map or a surface map and should have axes labeled in microns. The lecture notes have examples of 2D displays of PSF's.
+# Constants
+wavelength_nm = 500
+NA1 = 1.4  # Numerical aperture for objective 1
+NA2 = 1.0  # Numerical aperture for objective 2
+grid_size = 1  # Size of the grid in microns
+pixel_size_microns = 0.001  # Pixel size in microns
+
+# Convert wavelength to microns
+wavelength_microns = wavelength_nm / 1000
+
+# Create a grid of spatial coordinates
+x = np.linspace(-grid_size / 2, grid_size / 2, int(grid_size / pixel_size_microns))
+y = np.linspace(-grid_size / 2, grid_size / 2, int(grid_size / pixel_size_microns))
+X, Y = np.meshgrid(x, y)
+R = np.sqrt(X**2 + Y**2)
+
+
+# Function to calculate Gaussian approximation of PSF
+def gaussian_psf(R, wavelength, NA):
+    sigma = (0.61 * wavelength) / NA
+    psf = np.exp(-(R**2) / (2 * sigma**2))
+    ## Condition for divide by zero at the center of PSF; take into account "isnan"
+    psf[np.isnan(psf)] = 0
+    return psf
+
+
+# Calculate PSFs for both objectives
+psf1 = gaussian_psf(R, wavelength_microns, NA1)
+psf2 = gaussian_psf(R, wavelength_microns, NA2)
+
+# Plotting the PSFs
+fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+ax[0].imshow(
+    psf1,
+    extent=(-grid_size / 2, grid_size / 2, -grid_size / 2, grid_size / 2),
+    cmap="hot",
+)
+ax[0].set_title("PSF for Objective 1 (NA=1.4)")
+ax[0].set_xlabel("Microns")
+ax[0].set_ylabel("Microns")
+
+ax[1].imshow(
+    psf2,
+    extent=(-grid_size / 2, grid_size / 2, -grid_size / 2, grid_size / 2),
+    cmap="hot",
+)
+ax[1].set_title("PSF for Objective 2 (NA=1.0)")
+ax[1].set_xlabel("Microns")
+ax[1].set_ylabel("Microns")
+
+plt.tight_layout()
+plt.show()
 
 
 # 3b. Plot the profile through the center of the PSF for both objectives. The x axis should be in microns.
-## Condition for divide by zero at the center of PSF; take into account "isnan"
+# Plotting the profiles through the center
+center_index = len(x) // 2
+
+plt.figure(figsize=(15, 5))
+plt.plot(x, psf1[center_index, :], label="Objective 1 (NA=1.4)")
+plt.plot(x, psf2[center_index, :], label="Objective 2 (NA=1.0)")
+plt.title("PSF Profiles through Center")
+plt.xlabel("Microns")
+plt.ylabel("Intensity")
+plt.legend()
+plt.grid(True)
+plt.show()
+
 
 # 4. If the neurons are imaged with the two objectives above, what will the images look like? To answer this question, you should create 2 new images numerically in matlab using the principles of image formation and point spread functions calculated in problem 3. You should include an explanation of your work and matlab code that you write. Your analysis should include at least the following:
-
 # 4a. Calculated images of the neuron for each objective.
+
+# Load the original image and ensure it's grayscale
+image = neuron.img_gray
+
+# Convolve the image with each PSF
+simulated_image1 = convolve2d(image, psf1, mode="same")
+simulated_image2 = convolve2d(image, psf2, mode="same")
+
+# Plotting the simulated images
+fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+ax[0].imshow(simulated_image1, cmap="gray")
+ax[0].set_title("Simulated Image with Objective 1 (NA=1.4)")
+ax[0].axis("off")
+
+ax[1].imshow(simulated_image2, cmap="gray")
+ax[1].set_title("Simulated Image with Objective 2 (NA=1.0)")
+ax[1].axis("off")
+
+plt.tight_layout()
+plt.show()
+
 # 4b. Intensity profiles through a few regions in the original and calculated images. How do these intensity profiles compare to your results from problem 2? What is the cause of any differences?
+# Select a line of interest for profile comparison
+y_pos = 100  # Example y-coordinate
+
+# Extract intensity profiles
+original_profile = image[y_pos, :]
+simulated_profile1 = simulated_image1[y_pos, :]
+simulated_profile2 = simulated_image2[y_pos, :]
+
+# Plotting the profiles
+plt.figure(figsize=(10, 5))
+plt.plot(original_profile, label="Original Image", linestyle="--")
+plt.plot(simulated_profile1, label="Simulated Image 1 (NA=1.4)")
+plt.plot(simulated_profile2, label="Simulated Image 2 (NA=1.0)")
+plt.title("Intensity Profiles Comparison")
+plt.xlabel("X Pixel Position")
+plt.ylabel("Intensity")
+plt.legend()
+plt.grid(True)
+plt.show()
