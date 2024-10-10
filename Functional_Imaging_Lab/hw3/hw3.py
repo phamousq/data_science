@@ -1,7 +1,8 @@
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.signal import convolve2d
+from scipy import signal
+from scipy.special import j1
 
 
 # 2.
@@ -15,16 +16,22 @@ class Line:
         self.last_as_tuple = (self.x2, self.y2)
 
 
+test_img = cv2.imread("hippocampalneuron_gray.png", cv2.IMREAD_GRAYSCALE)
+plt_img = plt.imread("hippocampalneuron_gray.png")
+plt.imshow(test_img, cmap="gray")
+
+
 class Image:
     def __init__(self, png: str):
         self.img = cv2.imread(png)
         self.img_gray = cv2.imread(png, cv2.IMREAD_GRAYSCALE)
 
     def show_image(self):
-        cv2.imshow("PRESS ANY KEY TO EXIT", self.img)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-        cv2.waitKey(1)
+        plt.imshow(self.img)
+        # cv2.imshow("PRESS ANY KEY TO EXIT", self.img)
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
+        # cv2.waitKey(1)
 
     def plot_intensity(self, line: Line):
         x_vals = []
@@ -58,7 +65,7 @@ class Image:
 line1 = Line(420, 100, 570, 100)
 line2 = Line(700, 300, 800, 300)
 line3 = Line(320, 800, 420, 800)
-neuron = Image("neuron.png")
+neuron = Image("hippocampalneuron_gray.png")
 
 # Show image with 3 lines of interest
 neuron.overlay_lines([line1, line2, line3])
@@ -76,14 +83,6 @@ intensities = []
 for i in np.linspace(line2.x1, line2.x2, line2.x2 - line2.x1 - 1):
     x_vals.append(int(i))
     intensities.append(int(neuron.img_gray[line2.y1, int(i)]))
-plt.figure()
-plt.plot(x_vals, intensities, linewidth=2, label="Intensity")
-plt.xlabel("X-Coordinate")
-plt.ylabel("Intensity")
-plt.title("Intensity at Given X Coordinates")
-# plt.legend()
-plt.grid(True)
-plt.show()
 
 # dict of pixel: intensity
 # Calculate observed resolution using full width maximum height method
@@ -107,18 +106,24 @@ inten_obs_res = next(
         ).values()
     )
 )
-
-resolution_observed = swap_res[inten_obs_res] - swap_res[max_intensity]
+pixel_length = 50  # nannometer
+resolution_observed = (
+    swap_res[inten_obs_res] - swap_res[max_intensity]
+) * 50  # nanometers
 
 
 print(
-    f"We can see a local max of {max_intensity} at x value of {swap_res[max_intensity]}, half of this is about {max_intensity/2}, the next x value that measures less than half of the maximum intensity occurs at x val {swap_res[inten_obs_res]} with intensity of {inten_obs_res}. this means the resolution is {resolution_observed} pixels."
+    f"We can see a local max of {max_intensity} at x value of {swap_res[max_intensity]}, half of this is about {max_intensity/2}, the next x value that measures less than half of the maximum intensity occurs at x val {swap_res[inten_obs_res]} with intensity of {inten_obs_res}. this means the resolution is {resolution_observed} nanometers."
 )
 
+# Known pixel density
+print(f"observed resolution of {resolution_observed} nanometers")
+
+
 # solve for Rayleigh criterion which determines the diffraction limited resolution
-# Assumes objective has oil immersion to maximize NA at 1.4 and microscope wavelength of 0.55micrometers
+# Assumes objective has oil immersion to maximize NA at 1.4 and microscope wavelength of 0.50micrometers
 objective_NA = 1.4
-microscope_wavelength = 0.55  # Green light in micrometers
+microscope_wavelength = 0.50  # micrometers
 
 rayleigh = 0.61 * microscope_wavelength / objective_NA
 print(
@@ -126,20 +131,20 @@ print(
 )
 
 print(
-    f"observed resolution of {resolution_observed} micrometers is worse than diffraction limit {rayleigh} micrometers which is expected as aberrations, pixelation, and user error increase the overall margin of error"
+    f"observed resolution of {resolution_observed * 1E-3} micrometers is higher resolution than diffraction limit {rayleigh} micrometers which is not expected. We expect diffraction limit to be the best resolution that we would be able to achieve with aberrations, pixelation, and user error increase the overall margin of error for the observed resolution."
 )
 
 
 # 3a. Generate and display the 2D PSF of each of the objectives at a wavelength of 500 nm. To do this you will need to create a 2D grid of values with spacings appropriate for the objective. The PSF can be displayed as an intensity map or a surface map and should have axes labeled in microns. The lecture notes have examples of 2D displays of PSF's.
 # Constants
 wavelength_nm = 500
-NA1 = 1.4  # Numerical aperture for objective 1
-NA2 = 1.0  # Numerical aperture for objective 2
-grid_size = 1  # Size of the grid in microns
+NA1 = 0.28  # Numerical aperture for Mitutoyo M Plan Apo 10x
+NA2 = 0.95  # Numerical aperture for Zeiss Plan Neofluar 63x/0.95 Corr M27
+grid_size = 5  # Size of the grid in microns
 pixel_size_microns = 0.001  # Pixel size in microns
 
 # Convert wavelength to microns
-wavelength_microns = wavelength_nm / 1000
+wavelength_microns = wavelength_nm / 1e3
 
 # Create a grid of spatial coordinates
 x = np.linspace(-grid_size / 2, grid_size / 2, int(grid_size / pixel_size_microns))
@@ -148,18 +153,15 @@ X, Y = np.meshgrid(x, y)
 R = np.sqrt(X**2 + Y**2)
 
 
-# Function to calculate Gaussian approximation of PSF
-def gaussian_psf(R, wavelength, NA):
-    sigma = (0.61 * wavelength) / NA
-    psf = np.exp(-(R**2) / (2 * sigma**2))
-    ## Condition for divide by zero at the center of PSF; take into account "isnan"
-    psf[np.isnan(psf)] = 0
-    return psf
+# Function to calculate Airy disk PSF
+def airy_psf(R, wavelength, NA):
+    k = (2 * np.pi * NA) / wavelength
+    return (2 * j1(k * R) / (k * R)) ** 2
 
 
 # Calculate PSFs for both objectives
-psf1 = gaussian_psf(R, wavelength_microns, NA1)
-psf2 = gaussian_psf(R, wavelength_microns, NA2)
+psf1 = airy_psf(R, wavelength_microns, NA1)
+psf2 = airy_psf(R, wavelength_microns, NA2)
 
 # Plotting the PSFs
 fig, ax = plt.subplots(1, 2, figsize=(12, 6))
@@ -168,7 +170,7 @@ ax[0].imshow(
     extent=(-grid_size / 2, grid_size / 2, -grid_size / 2, grid_size / 2),
     cmap="hot",
 )
-ax[0].set_title("PSF for Objective 1 (NA=1.4)")
+ax[0].set_title(f"PSF for Objective 1 (NA={NA1})")
 ax[0].set_xlabel("Microns")
 ax[0].set_ylabel("Microns")
 
@@ -177,10 +179,9 @@ ax[1].imshow(
     extent=(-grid_size / 2, grid_size / 2, -grid_size / 2, grid_size / 2),
     cmap="hot",
 )
-ax[1].set_title("PSF for Objective 2 (NA=1.0)")
+ax[1].set_title(f"PSF for Objective 2 (NA={NA2})")
 ax[1].set_xlabel("Microns")
 ax[1].set_ylabel("Microns")
-
 plt.tight_layout()
 plt.show()
 
@@ -190,8 +191,8 @@ plt.show()
 center_index = len(x) // 2
 
 plt.figure(figsize=(15, 5))
-plt.plot(x, psf1[center_index, :], label="Objective 1 (NA=1.4)")
-plt.plot(x, psf2[center_index, :], label="Objective 2 (NA=1.0)")
+plt.plot(x, psf1[center_index, :], label=f"Objective 1 (NA={NA1})")
+plt.plot(x, psf2[center_index, :], label=f"Objective 2 (NA={NA2})")
 plt.title("PSF Profiles through Center")
 plt.xlabel("Microns")
 plt.ylabel("Intensity")
@@ -199,25 +200,30 @@ plt.legend()
 plt.grid(True)
 plt.show()
 
-
 # 4. If the neurons are imaged with the two objectives above, what will the images look like? To answer this question, you should create 2 new images numerically in matlab using the principles of image formation and point spread functions calculated in problem 3. You should include an explanation of your work and matlab code that you write. Your analysis should include at least the following:
 # 4a. Calculated images of the neuron for each objective.
 
 # Load the original image and ensure it's grayscale
-image = neuron.img_gray
+image = neuron.img
+center_index = psf1.shape[0] // 2  # Find the center index
+img_index = image.shape[0] // 2
+
+# Extract the central row to create a 1D profile
+psf1_1d = psf1[center_index, :]
+img_1d = image[center_index, :]
 
 # Convolve the image with each PSF
-simulated_image1 = convolve2d(image, psf1, mode="same")
-simulated_image2 = convolve2d(image, psf2, mode="same")
+simulated_image1 = signal.convolve(image, psf1, mode="same")
+simulated_image2 = signal.convolve(image, psf2, mode="same")
 
 # Plotting the simulated images
 fig, ax = plt.subplots(1, 2, figsize=(12, 6))
 ax[0].imshow(simulated_image1, cmap="gray")
-ax[0].set_title("Simulated Image with Objective 1 (NA=1.4)")
+ax[0].set_title(f"Simulated Image with Objective 1 (NA={NA1})")
 ax[0].axis("off")
 
 ax[1].imshow(simulated_image2, cmap="gray")
-ax[1].set_title("Simulated Image with Objective 2 (NA=1.0)")
+ax[1].set_title(f"Simulated Image with Objective 2 (NA={NA2})")
 ax[1].axis("off")
 
 plt.tight_layout()
@@ -243,3 +249,7 @@ plt.ylabel("Intensity")
 plt.legend()
 plt.grid(True)
 plt.show()
+
+
+plt.imshow(simulated_image1, cmap="gray")
+plt.imshow(simulated_image2, cmap="gray")
