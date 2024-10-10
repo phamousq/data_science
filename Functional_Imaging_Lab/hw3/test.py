@@ -6,7 +6,7 @@ from scipy import signal
 from skimage import io  # For reading the image
 
 # Load the neuron image (replace with your image file)
-neuron_img = io.imread("hippocampalneuron_gray.png")
+neuron_img = plt.imread("hippocampalneuron_gray.png")
 
 # Parameters
 wavelength = 0.5  # Wavelength in microns (500 nm)

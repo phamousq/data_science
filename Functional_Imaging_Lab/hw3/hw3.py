@@ -83,6 +83,14 @@ intensities = []
 for i in np.linspace(line2.x1, line2.x2, line2.x2 - line2.x1 - 1):
     x_vals.append(int(i))
     intensities.append(int(neuron.img_gray[line2.y1, int(i)]))
+plt.figure()
+plt.plot(x_vals, intensities, linewidth=2, label="Intensity")
+plt.xlabel("X-Coordinate")
+plt.ylabel("Intensity")
+plt.title("Intensity at Given X Coordinates")
+# plt.legend()
+plt.grid(True)
+plt.show()
 
 # dict of pixel: intensity
 # Calculate observed resolution using full width maximum height method
@@ -106,22 +114,16 @@ inten_obs_res = next(
         ).values()
     )
 )
-pixel_length = 50  # nannometer
-resolution_observed = (
-    swap_res[inten_obs_res] - swap_res[max_intensity]
-) * 50  # nanometers
+
+resolution_observed = swap_res[inten_obs_res] - swap_res[max_intensity]
 
 
 print(
-    f"We can see a local max of {max_intensity} at x value of {swap_res[max_intensity]}, half of this is about {max_intensity/2}, the next x value that measures less than half of the maximum intensity occurs at x val {swap_res[inten_obs_res]} with intensity of {inten_obs_res}. this means the resolution is {resolution_observed} nanometers."
+    f"We can see a local max of {max_intensity} at x value of {swap_res[max_intensity]}, half of this is about {max_intensity/2}, the next x value that measures less than half of the maximum intensity occurs at x val {swap_res[inten_obs_res]} with intensity of {inten_obs_res}. this means the resolution is {resolution_observed} pixels."
 )
 
-# Known pixel density
-print(f"observed resolution of {resolution_observed} nanometers")
-
-
 # solve for Rayleigh criterion which determines the diffraction limited resolution
-# Assumes objective has oil immersion to maximize NA at 1.4 and microscope wavelength of 0.50micrometers
+# Assumes objective has oil immersion to maximize NA at 1.4 and microscope wavelength of 0.55micrometers
 objective_NA = 1.4
 microscope_wavelength = 0.50  # micrometers
 
@@ -131,26 +133,40 @@ print(
 )
 
 print(
-    f"observed resolution of {resolution_observed * 1E-3} micrometers is higher resolution than diffraction limit {rayleigh} micrometers which is not expected. We expect diffraction limit to be the best resolution that we would be able to achieve with aberrations, pixelation, and user error increase the overall margin of error for the observed resolution."
+    f"observed resolution of {resolution_observed} micrometers is worse than diffraction limit {rayleigh} micrometers which is expected as aberrations, pixelation, and user error increase the overall margin of error"
 )
 
 
 # 3a. Generate and display the 2D PSF of each of the objectives at a wavelength of 500 nm. To do this you will need to create a 2D grid of values with spacings appropriate for the objective. The PSF can be displayed as an intensity map or a surface map and should have axes labeled in microns. The lecture notes have examples of 2D displays of PSF's.
 # Constants
 wavelength_nm = 500
-NA1 = 0.28  # Numerical aperture for Mitutoyo M Plan Apo 10x
-NA2 = 0.95  # Numerical aperture for Zeiss Plan Neofluar 63x/0.95 Corr M27
-grid_size = 5  # Size of the grid in microns
-pixel_size_microns = 0.001  # Pixel size in microns
+NA1 = 0.28  # Numerical aperture for objective 1
+NA2 = 0.95  # Numerical aperture for objective 2
+grid_size = 10  # Size of the grid in microns
+pixel_size_microns = 0.01  # Pixel size in microns
 
 # Convert wavelength to microns
-wavelength_microns = wavelength_nm / 1e3
+wavelength_microns = wavelength_nm / 1000
 
 # Create a grid of spatial coordinates
 x = np.linspace(-grid_size / 2, grid_size / 2, int(grid_size / pixel_size_microns))
 y = np.linspace(-grid_size / 2, grid_size / 2, int(grid_size / pixel_size_microns))
 X, Y = np.meshgrid(x, y)
 R = np.sqrt(X**2 + Y**2)
+
+
+# # Function to calculate Gaussian approximation of PSF
+# def gaussian_psf(R, wavelength, NA):
+#     sigma = (0.61 * wavelength) / NA
+#     psf = np.exp(-(R**2) / (2 * sigma**2))
+#     ## Condition for divide by zero at the center of PSF; take into account "isnan"
+#     psf[np.isnan(psf)] = 0
+#     return psf
+
+
+# # Calculate PSFs for both objectives
+# psf1 = gaussian_psf(R, wavelength_microns, NA1)
+# psf2 = gaussian_psf(R, wavelength_microns, NA2)
 
 
 # Function to calculate Airy disk PSF
@@ -182,6 +198,7 @@ ax[1].imshow(
 ax[1].set_title(f"PSF for Objective 2 (NA={NA2})")
 ax[1].set_xlabel("Microns")
 ax[1].set_ylabel("Microns")
+
 plt.tight_layout()
 plt.show()
 
@@ -191,8 +208,8 @@ plt.show()
 center_index = len(x) // 2
 
 plt.figure(figsize=(15, 5))
-plt.plot(x, psf1[center_index, :], label=f"Objective 1 (NA={NA1})")
-plt.plot(x, psf2[center_index, :], label=f"Objective 2 (NA={NA2})")
+plt.plot(x, psf1[center_index, :], label="Objective 1 (NA=1.4)")
+plt.plot(x, psf2[center_index, :], label="Objective 2 (NA=1.0)")
 plt.title("PSF Profiles through Center")
 plt.xlabel("Microns")
 plt.ylabel("Intensity")
@@ -204,8 +221,9 @@ plt.show()
 # 4a. Calculated images of the neuron for each objective.
 
 # Load the original image and ensure it's grayscale
-image = neuron.img
+image = neuron.img_gray
 center_index = psf1.shape[0] // 2  # Find the center index
+
 img_index = image.shape[0] // 2
 
 # Extract the central row to create a 1D profile
