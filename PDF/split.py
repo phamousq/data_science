@@ -10,25 +10,25 @@ class PDF_File:
         self.src = pymupdf.open(filename)
         self.path = file_path
 
-    # ! make this thing
-    def export_pages(
-        self,
-    ):
-        tar = pymupdf.open()
-        tar.insert_pdf(self.src, from_page=start, to_page=end)
-        tar.save(f"{page.number}.pdf")
-        tar.close()
+    def export_pages(self, chapters):
+        for x in range(len(chapters) - 1):
+            tar = pymupdf.open()  # output PDF for 1 page
+            # copy over current page
+            tar.insert_pdf(
+                self.src, from_page=chapters[x][2] - 1, to_page=chapters[x + 1][2] - 2
+            )
+            tar.save(f"{chapters[x][1]}.pdf")
+            tar.close()
+
+    def get_chapters(self):
+        chapters = []
+        toc = self.src.get_toc()
+        for x in toc:
+            if re.match(r"^\d\.\d", x[1]) and x[0] == 3:
+                chapters.append(x)
+        return chapters
 
 
-toc = src.get_toc()
-chapters = []
-for x in toc:
-    if re.match(r"^\d\.\d", x[1]) and x[0] == 3:
-        chapters.append(x)
+a = PDF_File(filename)
 
-for x in range(len(chapters) - 1):
-    tar = pymupdf.open()  # output PDF for 1 page
-    # copy over current page
-    tar.insert_pdf(src, from_page=chapters[x][2] - 1, to_page=chapters[x + 1][2] - 2)
-    tar.save(f"{chapters[x][1]}.pdf")
-    tar.close()
+a.export_pages(a.get_chapters())
