@@ -15,7 +15,7 @@ Tools:
 - clone repo from GitHub
 - create virtual env and install dependencies
   - ```uv venv && source .venv/bin/activate && uv sync```
-- pip install -r requirements.txt
+  - add packages with ```uv add {package}```
 
 ## Github Quickstart
 - brew GH tool
