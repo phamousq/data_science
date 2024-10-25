@@ -2,6 +2,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import base64
+import yaml
 
 
 def send_email(sender_email, sender_base64_password, to_address, subject, message):
@@ -26,3 +27,9 @@ def send_email(sender_email, sender_base64_password, to_address, subject, messag
         return False
     finally:
         server.quit()
+
+
+with open("config.yaml", "r") as file:
+    secrets = yaml.safe_load(file)
+
+secrets["test"]
