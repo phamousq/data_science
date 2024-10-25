@@ -3,3 +3,4 @@
 *.yaml
 *.yml
 *.pdf
+*.ruff_cache
