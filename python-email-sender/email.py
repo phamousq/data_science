@@ -8,10 +8,11 @@ with open("secrets.yaml", "r") as file:
     secrets = yaml.safe_load(file)
 
 
-def send_email(sender_email, sender_base64_password, to_address, subject, message):
+# ! requires google 2fa with app passcode.
+def send_email(sender_email, sender_app_password, to_address, subject, message):
     smtp_server = "smtp.gmail.com"
     smtp_port = 587
-    sender_password = sender_base64_password
+    sender_password = sender_app_password
     msg = MIMEMultipart()
     msg["From"] = sender_email
     msg["To"] = to_address
@@ -34,7 +35,7 @@ def send_email(sender_email, sender_base64_password, to_address, subject, messag
 
 send_email(
     secrets["sender_email"],
-    secrets["sender_base64_password"],
+    secrets["sender_app_password"],
     "phamousq@gmail.com",
     "test",
     "this is a test of python emailing",
