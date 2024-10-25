@@ -1,7 +1,10 @@
-import pymupdf
 import re
 
-filename = "/Users/qpair/Library/CloudStorage/Box-Box/Q's Cloud/Dell Med/MS3/CID/Biodesign Textbook - Yock.PDF"
+import pymupdf
+
+# ! The file must be in the same folder
+filename = "Biodesign Textbook - Yock.PDF"
+
 src = pymupdf.open(filename)
 
 
