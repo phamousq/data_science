@@ -16,6 +16,7 @@ dependencies = [
     "jedi>=0.19.1",
     "jupyter-client>=8.6.3",
     "jupyter-core>=5.7.2",
+    "matplotlib>=3.9.2",
     "matplotlib-inline>=0.1.7",
     "nest-asyncio>=1.6.0",
     "packaging>=24.1",
@@ -36,6 +37,9 @@ dependencies = [
     "tornado>=6.4.1",
     "traitlets>=5.14.3",
     "wcwidth>=0.2.13",
+    "opencv-python>=4.10.0.84",
+    "scipy>=1.14.1",
+    "tifffile>=2024.9.20",
 ]
 
 [tool.uv]
