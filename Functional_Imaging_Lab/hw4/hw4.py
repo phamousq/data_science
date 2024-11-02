@@ -1,67 +1,101 @@
-# hw4
+import matplotlib.animation as animation
 import matplotlib.pyplot as plt
-import cv2
-import tifffile as tiff
 import numpy as np
+from skimage import filters
+from tifffile import imread
+
+# Read the TIFF stack
+image_stack = imread("210827.tif")
+
+# Get the dimensions of the stack
+z, y, x = image_stack.shape
+print(f"Image stack dimensions: {z} x {y} x {x}")
 
 
-# ? Question 1
-def split_tiff(input_file, output_dir):
-    list_tiff = []
-    with tiff.TiffFile(input_file) as tif:
-        for i, page in enumerate(tif.pages):
-            list_tiff.append(page.asarray())
-            # output_path = f"{output_dir}/page_{i}.tif"
-            # tifffile.imwrite(output_path, page.asarray())
-    return list_tiff
+# Convert depth in micrometers to slice indices
+def depth_to_slice(depth):
+    return int(depth / 3)
 
 
-# Slieces are 1.34um x 1.34 um. Each slice separated by 3um.
-# images are 512x512 pixels
-between_slices = 3  # um
+# Create maximum intensity projections
+mip_100_200 = np.max(image_stack[depth_to_slice(100) : depth_to_slice(200)], axis=0)
+mip_400_500 = np.max(image_stack[depth_to_slice(400) : depth_to_slice(500)], axis=0)
 
-# * read data into 3d array of intensity values
-list_of_2d_arrays_from_tiff = split_tiff(
-    "210827.tif", "/Users/qpair/Documents/data_science/Functional_Imaging_Lab/hw4"
+# Get the range of pixel values
+print(f"Range of pixel values in 100-200 µm: {mip_100_200.min()} - {mip_100_200.max()}")
+print(f"Range of pixel values in 400-500 µm: {mip_400_500.min()} - {mip_400_500.max()}")
+
+
+def plot_image_and_histogram(image, title):
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+
+    # Display image
+    im = ax1.imshow(image, cmap="gray")
+    ax1.set_title(f"{title} - Image")
+    plt.colorbar(im, ax=ax1)
+
+    # Create histogram
+    ax2.hist(image.ravel(), bins=256)
+    ax2.set_title(f"{title} - Histogram")
+    ax2.set_xlabel("Pixel Value")
+    ax2.set_ylabel("Frequency")
+
+    plt.tight_layout()
+    plt.show()
+
+
+plot_image_and_histogram(mip_100_200, "Depth 100-200 µm")
+plot_image_and_histogram(mip_400_500, "Depth 400-500 µm")
+
+
+def create_flythrough(image_stack, slice_thickness, with_median_filter=False):
+    z, y, x = image_stack.shape
+
+    fig, ax = plt.subplots()
+
+    slices = range(0, z - slice_thickness, 5)  # Step by 5 for smoother animation
+
+    ims = []
+    for i in slices:
+        mip = np.max(image_stack[i : i + slice_thickness], axis=0)
+        if with_median_filter:
+            mip = filters.median(mip)
+        im = ax.imshow(mip, animated=True, cmap="gray")
+        ims.append([im])
+
+    ani = animation.ArtistAnimation(fig, ims, interval=50, blit=True, repeat_delay=1000)
+
+    plt.close()
+    return ani
+
+
+# Create fly-through without median filter
+ani_without_filter = create_flythrough(image_stack, depth_to_slice(30))
+ani_without_filter.save("flythrough_without_filter.gif")
+
+# Create fly-through with median filter
+ani_with_filter = create_flythrough(
+    image_stack, depth_to_slice(30), with_median_filter=True
 )
-len(list_of_2d_arrays_from_tiff) * between_slices  # 234 total slices; 702um imaged.
-
-# * function to get the "maxiumum intensity projections"
-# From 100 - 200 um
-np.amax(
-    list_of_2d_arrays_from_tiff[
-        round(100 / between_slices) : round(200 / between_slices)
-    ],
-    axis=0,
-)
-
-np.max(
-    list_of_2d_arrays_from_tiff[
-        round(400 / between_slices) : round(500 / between_slices)
-    ],
-    axis=0,
-)
-
-# * print out range of pixel values
-print(list_of_2d_arrays_from_tiff.min())
-print(np.amax(list_of_2d_arrays_from_tiff))
+ani_with_filter.save("flythrough_with_filter.gif")
 
 
-# * render images as grayscale over an appropraite range of intensity values
-tiff.imwrite(
-    "temp.tif",
-    np.max(
-        list_of_2d_arrays_from_tiff[33:67],
-        axis=0,
-    ),
-    photometric="minisblack",
-)
+def compare_contrast(image, filtered_image):
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
 
-# * create histograms of intensity values
+    ax1.imshow(image, cmap="gray")
+    ax1.set_title("Original Image")
 
-# * final code should include two images and two histograms
+    ax2.imshow(filtered_image, cmap="gray")
+    ax2.set_title("Median Filtered Image")
 
-# ? Question 2
-"""
-Create a fly through of the image stack (axially) by displaying the maximum intensity projection of the images in 30 um thick moving axial sections. What effect does a 2D median filter have on the images? Compare the image contrast with and without a median filter. You should turn in videos of the fly through with and without the median filter, a short description of the effect of the median filter, and all matlab code.
-"""
+    plt.tight_layout()
+    plt.show()
+
+
+# Compare a single slice
+slice_index = depth_to_slice(200)
+original_slice = image_stack[slice_index]
+filtered_slice = filters.median(original_slice)
+
+compare_contrast(original_slice, filtered_slice)
