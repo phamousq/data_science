@@ -5,3 +5,5 @@
 *.pdf
 *.ruff_cache
 *.tif
+*.zip
+^raw*
