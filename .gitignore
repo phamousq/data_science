@@ -1,9 +1,14 @@
 *.venv
-*.DS_Store
+*DS_Store
 *.yaml
 *.yml
 *.pdf
+<<<<<<< Updated upstream
 *.ruff_cache
 *.tif
 *.zip
 ^raw*
+=======
+*cache
+*.tif
+>>>>>>> Stashed changes
