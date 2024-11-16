@@ -3,12 +3,9 @@
 *.yaml
 *.yml
 *.pdf
-<<<<<<< Updated upstream
 *.ruff_cache
 *.tif
 *.zip
 ^raw*
-=======
-*cache
-*.tif
->>>>>>> Stashed changes
+
+*node_modules
