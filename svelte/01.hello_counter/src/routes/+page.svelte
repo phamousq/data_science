@@ -1,13 +1,6 @@
 <script lang="ts">
     import Projects from './projects/+page.svelte';
     let title = "Welcome to SvelteKit";
-    import { onMount } from "svelte";
-    
-    // onMount(async () => {
-    //     const response = await fetch('/api/routes');
-    //     routes = await response.json();
-    // });
-
 </script>
 
 <div class="home">
