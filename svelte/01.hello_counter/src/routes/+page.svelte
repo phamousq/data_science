@@ -1,27 +1,20 @@
 <script lang="ts">
+    import Projects from './projects/+page.svelte';
     let title = "Welcome to SvelteKit";
     import { onMount } from "svelte";
     
-    let routes: string[] = [];
-    onMount(async () => {
-        const response = await fetch('/api/routes');
-        routes = await response.json();
-    });
+    // onMount(async () => {
+    //     const response = await fetch('/api/routes');
+    //     routes = await response.json();
+    // });
+
 </script>
 
 <div class="home">
     <h1>{title}</h1>
     <p>This is a demo application showcasing SvelteKit routing and layouts.</p>
 
-    <h1>Projects (API, SSR)</h1>
-
-    <ol style="">
-        {#each routes as route}
-            <li>
-                <a href="/{route}">{route}
-            </li>
-        {/each}
-    </ol>
+    <Projects/>
 
 </div>
 

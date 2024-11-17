@@ -6,6 +6,7 @@
         const response = await fetch('/api/routes');
         routes = await response.json();
     });
+
 </script>
 
 <div>
@@ -14,7 +15,7 @@
     <ol style="">
         {#each routes as route}
             <li>
-                <a href="/{route}">{route}
+                <a href="/{route}">{route}</a>
             </li>
         {/each}
     </ol>
