@@ -1,17 +1,15 @@
 <script lang="ts">
     let farenheight: number = $state(32);
-    let celcius: number = $state((farenheight - 32) * 5 / 9);
+    let celcius: number = $derived(+((farenheight - 32) * 5 / 9).toFixed(2));
 
     function updateFarenheight(e: Event) {
         const input = e.currentTarget as HTMLInputElement;
         farenheight = +input.value;
-        celcius = +((farenheight - 32) * 5 / 9).toFixed(2);
     }
 
     function updateCelcius(e: Event) {
         const input = e.currentTarget as HTMLInputElement;
-        celcius = +input.value;
-        farenheight = +((celcius * 9 / 5) + 32).toFixed(2);
+        farenheight = +((+input.value * 9 / 5) + 32).toFixed(2);
     }
 
 </script>
