@@ -10,7 +10,6 @@
     let arrival = $state(today)
     let departure = $state(today)
     let valid = $derived(departure <= arrival && departure >= today)
-    // let date = $state(new Date().toISOString().split('T')[0])
 
     function readableDate(date: string) {  
         return new Date(date).toISOString().split('T')[0]
