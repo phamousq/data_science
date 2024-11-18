@@ -1,40 +1,33 @@
 <script lang="ts">
-    class Temperature {
-        farenheight: number = $state(32);
-        celcius: number = $derived(parseFloat(((this.farenheight - 32) * 5/9).toFixed(2)));
-        celcius2: number = $state(parseFloat(((this.farenheight - 32) * 5/9).toFixed(2)))
+    let farenheight: number = $state(32);
+    let celcius: number = $state((farenheight - 32) * 5 / 9);
 
-        setFarenheight(f: number) {
-            this.farenheight = parseFloat(f.toFixed(2));
-        }
-
-        setCelcius(c: number) {
-            this.farenheight = (c * 9/5) + 32;
-        }
-
-        updateFarenheight(e){
-            this.farenheight = +e.target.value
-            this.celcius2 = +((this.farenheight - 32) * 5/9).toFixed(2)
-        }
-
-        updateCelcius(e){
-            this.celcius2 = +e.target.value
-            this.farenheight = +((this.celcius2 * 9/5) + 32).toFixed(2)
-        }
-
+    function updateFarenheight(e: Event) {
+        const input = e.currentTarget as HTMLInputElement;
+        farenheight = +input.value;
+        celcius = +((farenheight - 32) * 5 / 9).toFixed(2);
     }
-    const temp = new Temperature();
+
+    function updateCelcius(e: Event) {
+        const input = e.currentTarget as HTMLInputElement;
+        celcius = +input.value;
+        farenheight = +((celcius * 9 / 5) + 32).toFixed(2);
+    }
+
 </script>
 
 <div>
     <h1>Farenheight to Celcius</h1>
     <p>
         Farenheight
-        <input type="number" value={temp.farenheight} oninput={(e) => temp.updateFarenheight(e)}>
+        <input type="number" value={farenheight} oninput={updateFarenheight}>
+        <input type="range" min="32" max="212" value={farenheight} oninput={updateFarenheight}>
     </p>
     <p>
         Celcius
-        <input type="number" value={temp.celcius2} oninput={(e) => temp.updateCelcius(e)}>
+        <input type="number" value={celcius} oninput={updateCelcius}>
+        <input type="range" min="{((32 - 32) * 5 / 9)}" max="{((212 - 32) * 5 / 9)}" value={celcius} oninput={updateCelcius}>
+        
     </p>
 </div>
 
