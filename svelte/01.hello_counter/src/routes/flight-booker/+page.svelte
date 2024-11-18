@@ -4,52 +4,61 @@
 
     let { data }: { data: PageData } = $props();
 
-    class FlightBooker {
-        type: "one way"|"round trip" = $state("one way");
-        disabled = $derived(
-            this.type === "one way" ? true : false)
-        arrival = $state(new Date().toISOString().split('T')[0])
-        departure = $state(new Date().toISOString().split('T')[0])
-        valid = $derived(
-            this.departure >= this.arrival ? true : false 
-        )
-        setArrival(a: string) {
-            this.arrival = a;
-            this.departure = a;
+    let type: "one way"|"round trip" = $state("one way");
+    let enabled = $derived(type === "one way" ? false : true)
+    let today = $state(new Date().toISOString().split('T')[0])
+    let arrival = $state(today)
+    let departure = $state(today)
+    let valid = $derived(departure <= arrival && departure >= today)
+    // let date = $state(new Date().toISOString().split('T')[0])
+
+    function readableDate(date: string) {  
+        return new Date(date).toISOString().split('T')[0]
+    }
+    function setDeparture(e: Event) {
+        const input = e.currentTarget as HTMLInputElement;
+        let a = readableDate(input.value);
+        departure = a;
+        if (!enabled) {
+            arrival = a;
+        }
+        if (a > arrival) {
+            arrival = a;
         }
     }
-    let gui = new FlightBooker();
-
-    onMount(() => {
-        let a = document.getElementById("arr"); 
-    })
+    function setArrival(e: Event) {
+        const input = e.currentTarget as HTMLInputElement;
+        let a = readableDate(input.value);
+        arrival = a;
+        if (a < departure) {
+            departure = a;
+        }
+    }
 </script>
 
 <div>
     <h1>Flight Booker</h1>
-    <select bind:value={gui.type}>
+    <select bind:value={type}>
         <option value="one way">One Way</option>
         <option value="round trip">Round Trip</option>
     </select>
-    <!-- <div>enabled: {gui.disabled}</div> -->
+    <!-- <div>enabled: {disabled}</div> -->
     <div>
         <p>
         Departure: 
-        <input id="arr" type="date" value={gui.departure} style={(gui.valid)===false ? "background-color: red" : "background-color: white"} oninput={(e) => gui.setArrival(new Date(e.currentTarget.value))}>
+        <input id="arr" type="date" value={departure} style={!valid ? "background-color: red" : "background-color: white"} oninput={setDeparture}>
         </p>
     </div>
     <div>
         <p>
             Arrival: 
-            <input id="dep" type="date" bind:value={gui.arrival} disabled={gui.disabled}>
+            <input id="dep" type="date" value={arrival} disabled={!enabled} oninput={setArrival}>
         </p>
     </div>
     <p></p>
-    <div>{gui.departure}</div>
-    <div>{gui.arrival}</div>
-    <p>valid
-        {gui.valid}
-    </p>
+    <!-- <div>{departure}</div>
+    <div>{arrival}</div> -->
+    <!-- <p>valid: {valid}</p> -->
 </div>
 
 <!-- todo set default date -->
