@@ -1,47 +1,75 @@
 import numpy as np
-# import os
+import matplotlib.pyplot as plt
+import os
 
-def read_raw_basler(fname, n_images=None, normalize=False):
+# %%
+def read_8bit_grayscale_memmap(fname):
     """
-    Read raw Basler camera data from a binary file.
+    Reads a binary file containing 8-bit grayscale images using memory mapping.
     
     Parameters:
-    -----------
-    fname : str
-        Path to the input file
-    n_images : int, optional
-        Number of images to read. If None, reads all images in file
-    normalize : bool, optional
-        If True, normalizes the output to range [0, 1]
+        fname (str): Path to the binary file.
         
     Returns:
-    --------
-    numpy.ndarray or int
-        3D array of image data (height x width x n_images) if successful,
-        -1 if file cannot be opened
+        numpy.ndarray: A 3D array (N_images, height, width) representing the image stack.
     """
     try:
-        with open(fname, 'rb') as fp:
-            # Read header information
-            n1 = int.from_bytes(fp.read(2), byteorder='little', signed=False)
-            n2 = int.from_bytes(fp.read(2), byteorder='little', signed=False)
-            N = int.from_bytes(fp.read(2), byteorder='little', signed=False)
+        # Read header separately first
+        with open(fname, 'rb') as file:
+            header = np.fromfile(file, dtype=np.uint16, count=4)
+            width, height, n_images, _ = header
             
-            # Use provided n_images if specified, otherwise use N from file
-            n_images = N if n_images is None else n_images
+            # Print header values for debugging
+            print(f"Header values - Width: {width}, Height: {height}, N_images: {n_images}")
             
-            # Read image data
-            data = np.frombuffer(fp.read(n1 * n2 * n_images), dtype=np.uint8)
+            # Calculate offset for image data (8 bytes for header)
+            offset = 8
             
-            # Reshape data into 3D array (height x width x n_images)
-            images = data.reshape((n2, n1, n_images))
+            # Calculate expected size using int64 to avoid overflow
+            expected_size = offset + np.int64(width) * np.int64(height) * np.int64(n_images)
             
-            if normalize:
-                # Convert to float and normalize to [0, 1]
-                images = images.astype(np.float32) / 255.0
+            # Get file size
+            file_size = os.path.getsize(fname)
+            print(f"File size: {file_size}, Expected size: {expected_size}")
+            
+            # # Read a small portion to verify data format
+            # file.seek(offset)
+            # sample = np.fromfile(file, dtype=np.uint8, count=min(1000, width * height))
+            # print(f"Sample data range: {sample.min()} to {sample.max()}")
+            
+            if file_size < expected_size:
+                print(f"Warning: File seems truncated")
+                return None
                 
+            # Memory map the file
+            mm = np.memmap(fname, 
+                          dtype=np.uint8,
+                          mode='r',
+                          offset=offset,
+                          shape=(n_images, height, width))
+            
+            # Convert to regular numpy array
+            images = np.array(mm)
+            
+            print(f"Successfully loaded array of shape {images.shape}")
+            print(f"Max: {np.max(images)}, Min: {np.min(images)}, Average: {np.mean(images)}")
             return images
             
-    except FileNotFoundError:
-        print(f"\ncould not open {fname} for reading")
-        return -1
+    except Exception as e:
+        print(f"Error reading file: {e}")
+        return None
+
+# # %%
+# for i in range(1, 102):  # Files numbered from 1 to 101
+#     filename = f'media/raw.{i:04d}'  # Format filename with leading zeros
+#     # roi_means = read_8bit_grayscale(filename)
+#     images = read_8bit_grayscale_memmap(filename)
+#     for i in range(images.shape[0]):
+#         plt.imshow(images[i], cmap='gray')
+#         plt.show()
+
+# %%
+test =read_8bit_grayscale_memmap('media/raw.0001')
+plt.imshow(test[0])
+
+# %%

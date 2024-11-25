@@ -8,3 +8,4 @@
 *.zip
 raw*
 node_modules
+*media*
