@@ -6,6 +6,5 @@
 *.ruff_cache
 *.tif
 *.zip
-raw*
 node_modules
 *media*
