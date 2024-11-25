@@ -4,9 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.ndimage import uniform_filter
 from scipy.io import loadmat
-
-# from laser_speckle_contrast_imaging import read_raw_basler
-from laser_speckle_contrast_imaging import read_8bit_grayscale
+from scipy.interpolate import interp1d
 
 # %% Question 1 and 2
 def read_mat_file(fname):
@@ -263,8 +261,6 @@ for i, name in enumerate(roi_names):
     print(f"{name} - Mean: {mean_val:.4f}, Std: {std_val:.4f}")
 
 # %% Question 6: Convert Speckle Contrast to Correlation Times
-from scipy.interpolate import interp1d
-
 def speckle_contrast_equation(x, T):
     """
     Calculate speckle contrast from correlation time using Eq 2.
