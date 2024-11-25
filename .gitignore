@@ -1,7 +1,10 @@
 *.venv
-*DS_Store
+*DS_Store*
 *.yaml
 *.yml
 *.pdf
-*cache
+*.ruff_cache
 *.tif
+*.zip
+node_modules
+*media*
