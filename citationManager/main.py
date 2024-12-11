@@ -23,7 +23,7 @@ def main():
         increment_counter,
         text_content,
     )
-    print(counter)
+    # print(counter)
 
     counter = 1
     citations = re.sub(
@@ -31,10 +31,17 @@ def main():
         increment_counter,
         citations,
     )
-    print(counter)
+    # print(counter)
 
     # print(text_content)
-    print(citations)
+    # print(citations)
+
+    # Append citations to text_content
+    combined_content = text_content + "\n\nCitations:\n" + citations
+
+    # Export to new txt file
+    with open("output.txt", "w") as output_file:
+        output_file.write(combined_content)
 
     # Main program logic
     pass
